@@ -33,7 +33,10 @@ class _WeatherBackgroundState extends State<WeatherBackground>
   @override
   void initState() {
     super.initState();
-    _clock = AnimationController.unbounded(vsync: this);
+    _clock = AnimationController.unbounded(
+      vsync: this,
+      duration: const Duration(seconds: 30),
+    );
     _clock.repeat();
     _seed();
   }
