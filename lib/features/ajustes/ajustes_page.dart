@@ -235,8 +235,8 @@ class AjustesPage extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     CrashStore.failures > 0
-                        ? 'v1.0.3 · ${CrashStore.failures} falhas registradas'
-                        : 'v1.0.3 · app saudável — nenhum erro registrado',
+                        ? 'v1.0.4 · ${CrashStore.failures} falhas registradas'
+                        : 'v1.0.4 · app saudável — nenhum erro registrado',
                     style: TextStyle(
                         color: CrashStore.failures > 0
                             ? AColors.danger

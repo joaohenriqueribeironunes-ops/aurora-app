@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'app_state.dart';
 import 'theme.dart';
@@ -25,7 +26,12 @@ class WeatherBackground extends StatefulWidget {
 
 class _WeatherBackgroundState extends State<WeatherBackground>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _clock;
+  /// Relógio de tempo decorrido (segundos, sempre crescente).
+  /// Usa Ticker direto — um AnimationController.unbounded().repeat() quebra
+  /// no release ("Infinity or NaN toInt", porque os limites são ±∞).
+  late final Ticker _ticker;
+  late final ValueNotifier<double> _tick;
+  double _t = 0;
   late List<_Orb> _orbs;
   late List<_FogBlob> _fogs;
   final math.Random _rng = math.Random(42);
@@ -33,11 +39,12 @@ class _WeatherBackgroundState extends State<WeatherBackground>
   @override
   void initState() {
     super.initState();
-    _clock = AnimationController.unbounded(
-      vsync: this,
-      duration: const Duration(seconds: 30),
-    );
-    _clock.repeat();
+    _tick = ValueNotifier<double>(0);
+    _ticker = createTicker((elapsed) {
+      _t = elapsed.inMicroseconds / Duration.microsecondsPerSecond;
+      if ((_t - _tick.value).abs() >= 1 / 60) _tick.value = _t;
+    });
+    _ticker.start();
     _seed();
   }
 
@@ -65,16 +72,17 @@ class _WeatherBackgroundState extends State<WeatherBackground>
 
   @override
   void dispose() {
-    _clock.dispose();
+    _ticker.dispose();
+    _tick.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _clock,
+      animation: _tick,
       builder: (context, _) {
-        final t = _clock.value;
+        final t = _tick.value;
         return Stack(
           children: [
             const ColoredBox(color: AColors.bgBottom),
