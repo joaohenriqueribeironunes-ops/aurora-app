@@ -34,13 +34,32 @@ class _FocoPageState extends State<FocoPage> {
     final state = context.read<AppState>();
     if (state.sources.isEmpty) return;
     setState(() => _loadingNews = true);
-    final items = await NewsService.fetchAll(state.sources);
+    List<NewsItem> items = [];
+    String? error;
+    try {
+      items = await NewsService.fetchAll(state.sources);
+      if (items.isEmpty) {
+        error = 'As ${state.sources.length} fontes responderam vazio — '
+            'verifique sua internet ou tente novamente mais tarde.';
+      }
+    } catch (e) {
+      error = 'Falha na busca de notícias: $e';
+    }
     if (!mounted) return;
     setState(() {
       _news = items;
       _loadingNews = false;
     });
-    await state.cacheNews(items);
+    if (items.isNotEmpty) {
+      await state.cacheNews(items);
+    }
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error),
+        backgroundColor: const Color(0xFF0E1F18),
+        duration: const Duration(seconds: 5),
+      ));
+    }
   }
 
   @override
@@ -61,7 +80,16 @@ class _FocoPageState extends State<FocoPage> {
         children: [
           // ---------- Resumo de notícias ----------
           SectionTitle('Resumo de hoje — Boas fontes'),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
+          Text(
+            '${state.sources.length} fontes · ' +
+                (state.cachedNewsAt == null
+                    ? 'nunca atualizado'
+                    : 'atualizado às ${_two(state.cachedNewsAt!.hour)}:${_two(state.cachedNewsAt!.minute)}'),
+            style: const TextStyle(
+                color: AColors.textSecondary, fontSize: 11),
+          ),
+          const SizedBox(height: 8),
           Glass(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -285,37 +285,62 @@ class _HomeRootState extends State<HomeRoot> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeIn,
-                    transitionBuilder: (child, anim) {
-                      final slide = Tween<Offset>(
-                        begin: const Offset(0, 0.35),
-                        end: Offset.zero,
-                      ).animate(anim);
-                      return ClipRect(
-                        child: FadeTransition(
-                          opacity: anim,
-                          child: SlideTransition(
-                            position: slide,
-                            child: child,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeIn,
+                        transitionBuilder: (child, anim) {
+                          final slide = Tween<Offset>(
+                            begin: const Offset(0, 0.35),
+                            end: Offset.zero,
+                          ).animate(anim);
+                          return ClipRect(
+                            child: FadeTransition(
+                              opacity: anim,
+                              child: SlideTransition(
+                                position: slide,
+                                child: child,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          _titles[_tab],
+                          key: ValueKey(_tab),
+                          style: const TextStyle(
+                            fontSize: 34,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -1,
                           ),
                         ),
-                      );
-                    },
-                    child: Text(
-                      _titles[_tab],
-                      key: ValueKey(_tab),
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -1,
                       ),
                     ),
-                  ),
+                    // Versão sempre visível — elimina dúvida de qual build
+                    // está no aparelho (cached Downloads não enganam mais).
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: AColors.accentSoft,
+                        border: Border.all(
+                            color: AColors.accent.withOpacity(0.35),
+                            width: 0.6),
+                      ),
+                      child: Text(
+                        AColors.version,
+                        style: TextStyle(
+                          color: AColors.accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
