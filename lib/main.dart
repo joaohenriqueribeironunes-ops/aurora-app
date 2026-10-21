@@ -197,7 +197,7 @@ class AuroraApp extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'v1.0.4 · erro na interface',
+                    '${AColors.version} · erro na interface',
                     style: TextStyle(
                         color: Color(0xFF46E0A6),
                         fontWeight: FontWeight.w700,

@@ -36,13 +36,9 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            // Minificação R8: APK menor e carregamento mais rápido.
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // Minificação R8 desativada: quebrava a bridge Pigeon do
+            // shared_preferences (NoSuchMethodError no getAll) e derrubava
+            // o state.load. O ganho de tamanho vem dos APKs por ABI.
         }
     }
 }

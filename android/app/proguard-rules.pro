@@ -16,6 +16,11 @@
 -keep class com.ryanheise.** { *; }
 -dontwarn com.ryanheise.**
 
+# Pigeon (shared_preferences e demais pontes Dart↔Java) — corrotinas Kotlin
+-keep class io.flutter.plugins.sharedpreferences.** { *; }
+-keep class kotlin.coroutines.** { *; }
+-dontwarn kotlin.coroutines.**
+
 # timezone / joda-like (flutter_local_notifications usa joda time pop)
 -dontwarn org.joda.time.**
 
