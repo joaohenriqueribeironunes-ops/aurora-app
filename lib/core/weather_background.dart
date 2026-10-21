@@ -42,7 +42,9 @@ class _WeatherBackgroundState extends State<WeatherBackground>
     _tick = ValueNotifier<double>(0);
     _ticker = createTicker((elapsed) {
       _t = elapsed.inMicroseconds / Duration.microsecondsPerSecond;
-      if ((_t - _tick.value).abs() >= 1 / 60) _tick.value = _t;
+      // ~30 fps no fundo (movimento lento, não precisa dos 60) —
+      // corta quase metade do custo de GPU/painting do app.
+      if ((_t - _tick.value).abs() >= 1 / 30) _tick.value = _t;
     });
     _ticker.start();
     _seed();
@@ -98,12 +100,17 @@ class _WeatherBackgroundState extends State<WeatherBackground>
               ),
             ),
             Positioned.fill(
-              child: CustomPaint(
-                painter: _WeatherPainter(
-                  mode: widget.mode,
-                  t: t,
-                  orbs: _orbs,
-                  fogs: _fogs,
+              child: RepaintBoundary(
+                // isolado: o fundo repinta sozinho sem arrastar a página
+                child: CustomPaint(
+                  isComplex: true,
+                  willChange: true,
+                  painter: _WeatherPainter(
+                    mode: widget.mode,
+                    t: t,
+                    orbs: _orbs,
+                    fogs: _fogs,
+                  ),
                 ),
               ),
             ),

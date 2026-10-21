@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Paleta — verde grafite + liquidez Apple.
 class AColors {
@@ -15,10 +16,13 @@ class AColors {
   static const accent = Color(0xFF46E0A6); // verde-água Apple-adjacente
   static const accentSoft = Color(0x2646E0A6);
   static const danger = Color(0xFFFF6B6B);
+
+  /// Sombras ambientais (profundidade dos cartões de vidro).
+  static const shadowAmbient = Color(0x88000000);
 }
 
 /// Container de "liquid glass": blur de fundo, preenchimento translúcido,
-/// borda de luz no topo e brilho canto superior esquerdo — como o iOS.
+/// junta de luz no topo, sombra ambiente e brilho no canto — como o iOS 26.
 class Glass extends StatelessWidget {
   final Widget child;
   final double radius;
@@ -40,7 +44,7 @@ class Glass extends StatelessWidget {
     final body = ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(radius),
@@ -57,6 +61,14 @@ class Glass extends StatelessWidget {
               right: BorderSide(color: AColors.glassBorder, width: 0.5),
               bottom: BorderSide(color: AColors.glassBorder, width: 0.5),
             ),
+            boxShadow: const [
+              // sombra ambiente — dá profundidade Mac ao cartão
+              BoxShadow(
+                color: AColors.shadowAmbient,
+                blurRadius: 22,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
           child: Padding(padding: padding, child: child),
         ),
@@ -64,12 +76,50 @@ class Glass extends StatelessWidget {
     );
 
     if (onTap == null) return body;
-    return GestureDetector(onTap: onTap, child: body);
+    return _Pressable(
+      onTap: onTap!,
+      child: body,
+    );
   }
 }
 
-/// Botão cápsula estilo iOS com efeito de vidro.
-class CapsuleButton extends StatelessWidget {
+/// Envolvente de toque: escala sutil + haptics no pressionar.
+class _Pressable extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  const _Pressable({required this.child, required this.onTap});
+
+  @override
+  State<_Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<_Pressable> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _down = true),
+      onTapCancel: () => setState(() => _down = false),
+      onTapUp: (_) => setState(() => _down = false),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.onTap();
+      },
+      child: AnimatedScale(
+        scale: _down ? 0.97 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Botão cápsula estilo iOS — preenchimento de vidro, resposta tátil e
+/// micro-escala ao pressionar.
+class CapsuleButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
@@ -84,40 +134,82 @@ class CapsuleButton extends StatelessWidget {
   });
 
   @override
+  State<CapsuleButton> createState() => _CapsuleButtonState();
+}
+
+class _CapsuleButtonState extends State<CapsuleButton> {
+  bool _down = false;
+
+  @override
   Widget build(BuildContext context) {
-    final c = color ?? AColors.accent;
-    return Opacity(
-      opacity: onPressed == null ? 0.45 : 1,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: GestureDetector(
-            onTap: onPressed,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(26),
-                color: c.withOpacity(0.18),
-                border: Border.all(color: c.withOpacity(0.45), width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 17, color: c),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: c,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
-                    ),
+    final c = widget.color ?? AColors.accent;
+    final enabled = widget.onPressed != null;
+    return AnimatedOpacity(
+      opacity: enabled ? 1 : 0.45,
+      duration: const Duration(milliseconds: 150),
+      child: GestureDetector(
+        onTapDown: enabled ? (_) => setState(() => _down = true) : null,
+        onTapCancel: enabled ? () => setState(() => _down = false) : null,
+        onTapUp: enabled ? (_) => setState(() => _down = false) : null,
+        onTap: enabled
+            ? () {
+                HapticFeedback.lightImpact();
+                widget.onPressed!();
+              }
+            : null,
+        child: AnimatedScale(
+          scale: _down ? 0.96 : 1,
+          duration: const Duration(milliseconds: 110),
+          curve: Curves.easeOutCubic,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      c.withOpacity(0.24),
+                      c.withOpacity(0.16),
+                    ],
                   ),
-                ],
+                  border: Border(
+                    top: BorderSide(color: c.withOpacity(0.55), width: 0.8),
+                    bottom: BorderSide(color: c.withOpacity(0.25), width: 0.5),
+                    left: BorderSide(color: c.withOpacity(0.45), width: 0.6),
+                    right: BorderSide(color: c.withOpacity(0.45), width: 0.6),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: c.withOpacity(0.20),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.icon != null) ...[
+                      Icon(widget.icon, size: 17, color: c),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      widget.label,
+                      style: TextStyle(
+                        color: c,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -127,7 +219,7 @@ class CapsuleButton extends StatelessWidget {
   }
 }
 
-/// Título de seção, tipografia SF-adjacente.
+/// Título de seção — sobretítulo com marcador de vidro.
 class SectionTitle extends StatelessWidget {
   final String text;
   final Color? color;
@@ -136,14 +228,31 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text.toUpperCase(),
-      style: TextStyle(
-        color: color ?? AColors.textSecondary,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.4,
-      ),
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 12,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(2),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AColors.accent, Color(0xFF5AA7FF)],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text.toUpperCase(),
+          style: TextStyle(
+            color: color ?? AColors.textSecondary,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -158,11 +267,53 @@ TextTheme auroraText() {
     height: 1.25,
   );
   return TextTheme(
-    displaySmall: base.copyWith(fontSize: 34, fontWeight: FontWeight.w700, letterSpacing: -1),
-    titleLarge: base.copyWith(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.5),
-    titleMedium: base.copyWith(fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.3),
+    displaySmall: base.copyWith(
+        fontSize: 34, fontWeight: FontWeight.w700, letterSpacing: -1),
+    titleLarge: base.copyWith(
+        fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+    titleMedium: base.copyWith(
+        fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.3),
     bodyLarge: base.copyWith(fontSize: 17, letterSpacing: -0.2),
     bodyMedium: base.copyWith(fontSize: 15, letterSpacing: -0.1),
     bodySmall: TextStyle(color: AColors.textSecondary, fontSize: 13, height: 1.3),
+  );
+}
+
+/// Tema Material global afinado — sliders, diálogos, snackbars e divisores
+/// no padrão visual Aurora ( usado pelo MaterialApp ).
+ThemeData auroraTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: AColors.bgBottom,
+    textTheme: auroraText(),
+    splashFactory: NoSplash.splashFactory,
+    dividerTheme: DividerThemeData(color: Colors.white.withOpacity(0.08), thickness: 0.6),
+    colorScheme: ColorScheme.dark(
+      primary: AColors.accent,
+      surface: AColors.glassFill,
+    ),
+    sliderTheme: const SliderThemeData(
+      trackHeight: 3,
+      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
+      overlayShape: RoundSliderOverlayShape(overlayRadius: 16),
+      trackShape: RoundedRectSliderTrackShape(),
+      showValueIndicator: ShowValueIndicator.never,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: const Color(0xF0091410),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: const Color(0xF00E211A),
+      contentTextStyle: const TextStyle(color: AColors.textPrimary, fontSize: 14),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+      ),
+    ),
   );
 }

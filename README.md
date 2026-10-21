@@ -2,6 +2,14 @@
 
 App para pessoas neurodivergentes (TEA e TDAH), com 5 sessões:
 
+> **v1.1.0 — refino de design + integração Android**: liquid glass mais profundo
+> (sombras ambientais e solu­tas de luz), dock com resposta tátil e escala de
+> mola, splash verde grafite (sem flash branco), ícone adaptativo nativo,
+> edge-to-edge com barras translúcidas, haptics, tela que não adormece
+> enquanto as ondas/música tocam, lembretes com alarme exato que sobrevivem ao
+> reboot (reagendados ao abrir o app), tocar na notificação abre o app na
+> Sessão Foco, e APKs por arquitetura (arm64 ~2× menor) com minificação R8.
+
 | Sessão | O que tem |
 |---|---|
 | **Foco** | Resumo das manchetes das suas fontes confiáveis (feeds RSS que você escolhe) + próximos compromissos, com **notify/lembrete agendado por horário** na barra do sistema. |

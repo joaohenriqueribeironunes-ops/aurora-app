@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +16,6 @@ class _GameColors {
     Color(0xFFFFC75A), // âmbar — sol
     Color(0xFFFF7B9C), // rosé — dó agudo
   ];
-  static const List<double> freqs = [261.6, 329.6, 392.0, 523.3];
 }
 
 /// Sessão 2 — Jogos: memória de sequência de cores (estilo Simon).
@@ -115,6 +115,7 @@ class _JogosPageState extends State<JogosPage> {
 
   Future<void> _tap(int index) async {
     if (_watching || _sequence.isEmpty || _gameOver) return;
+    HapticFeedback.lightImpact();
     if (index != _sequence[_round]) {
       await _gameOverNow();
       return;
@@ -135,6 +136,7 @@ class _JogosPageState extends State<JogosPage> {
   }
 
   Future<void> _gameOverNow() async {
+    HapticFeedback.heavyImpact();
     setState(() => _gameOver = true);
     await _playTone(0, isGameOver: true);
   }

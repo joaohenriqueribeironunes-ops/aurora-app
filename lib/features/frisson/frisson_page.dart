@@ -4,8 +4,10 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/app_state.dart';
 import '../../core/audio_engine.dart';
@@ -53,6 +55,7 @@ class _FrissonPageState extends State<FrissonPage> {
         _musicPlayer.seek(Duration.zero);
       }
       setState(() {});
+      _syncWakelock();
     });
     _wavePlayer.playerStateStream.listen((_) {
       if (mounted) setState(() {});
@@ -65,6 +68,9 @@ class _FrissonPageState extends State<FrissonPage> {
     _musicStateSub?.cancel();
     _wavePlayer.dispose();
     _musicPlayer.dispose();
+    try {
+      WakelockPlus.disable();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -77,9 +83,20 @@ class _FrissonPageState extends State<FrissonPage> {
     try {
       await _wavePlayer.stop();
     } catch (_) {}
+    _syncWakelock();
+  }
+
+  /// Sessão sonora ativa → tela não adormece no meio (o Android apaga em
+  /// poucos minutos sem o wakelock; áudio continua, mas visual cai).
+  void _syncWakelock() {
+    final keep = _wavePlaying || _musicPlayer.playing;
+    try {
+      keep ? WakelockPlus.enable() : WakelockPlus.disable();
+    } catch (_) {}
   }
 
   Future<void> _selectBank(WaveBank b) async {
+    HapticFeedback.selectionClick();
     final wasPlaying = _wavePlaying;
     setState(() => _bank = b);
     if (wasPlaying) await _playWave();
@@ -93,6 +110,7 @@ class _FrissonPageState extends State<FrissonPage> {
       await _wavePlayer.play();
       await _wavePlayer.setVolume(_waveVolume);
       setState(() => _wavePlaying = true);
+      _syncWakelock();
     } catch (_) {}
   }
 
@@ -152,6 +170,7 @@ class _FrissonPageState extends State<FrissonPage> {
       setState(() => _currentTitle = res.files.first.name);
       await _musicPlayer.play();
       await _musicPlayer.setVolume(_musicVolume);
+      _syncWakelock();
     } catch (_) {}
   }
 
