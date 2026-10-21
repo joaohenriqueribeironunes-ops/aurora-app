@@ -8,3 +8,4 @@ build/
 .idea/
 *.apk
 *.aab
+build-error.log
