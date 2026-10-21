@@ -13,6 +13,15 @@ import 'package:path_provider/path_provider.dart';
 class WavComposer {
   static const int sr = 44100;
 
+  /// Amostra protegida: NaN/Infinity viram silêncio (nunca estoura "toInt").
+  /// Retorna double em [-1, 1]; clamp manual porque `double.clamp` devolve num.
+  static double _safe(double v) {
+    if (!v.isFinite) return 0;
+    if (v < -1) return -1;
+    if (v > 1) return 1;
+    return v;
+  }
+
   static const double tau = math.pi * 2;
 
   /// Constrói um WAV estéreo a partir de duas funções de amostra.
@@ -22,18 +31,19 @@ class WavComposer {
     required double Function(double t) right,
     double amplitude = 0.55,
   }) {
-    final total = (sr * seconds).round();
+    final total = seconds.isFinite ? (sr * seconds).round().clamp(1, sr * 600) : sr;
+    final sec = seconds.isFinite ? seconds : 1.0;
     final data = ByteData(44 + total * 4);
     _writeWavHeader(data, total * 4, channels: 2);
     for (int i = 0; i < total; i++) {
       final t = i / sr;
       // fade in/out de 40ms para evitar estalos no loop.
-      final edge = (t / 0.04).clamp(0.0, 1.0) *
-          (((seconds - t) / 0.04).clamp(0.0, 1.0));
-      final l = (left(t) * amplitude * edge).clamp(-1.0, 1.0);
-      final r = (right(t) * amplitude * edge).clamp(-1.0, 1.0);
-      data.setInt16(44 + i * 4 + 0, (l * 32767).round(), Endian.little);
-      data.setInt16(44 + i * 4 + 2, (r * 32767).round(), Endian.little);
+      final edge =
+          (t / 0.04).clamp(0.0, 1.0) * ((sec - t) / 0.04).clamp(0.0, 1.0);
+      final l = _safe(left(t) * amplitude * edge) * 32767;
+      final r = _safe(right(t) * amplitude * edge) * 32767;
+      data.setInt16(44 + i * 4 + 0, l.round(), Endian.little);
+      data.setInt16(44 + i * 4 + 2, r.round(), Endian.little);
     }
     return data.buffer.asUint8List();
   }
@@ -44,16 +54,17 @@ class WavComposer {
     required double Function(double t) sample,
     double amplitude = 0.5,
   }) {
-    final total = (sr * seconds).round();
+    final total = seconds.isFinite ? (sr * seconds).round().clamp(1, sr * 600) : sr;
+    final sec = seconds.isFinite ? seconds : 1.0;
     final data = ByteData(44 + total * 2);
     _writeWavHeader(data, total * 2, channels: 1);
     for (int i = 0; i < total; i++) {
       final t = i / sr;
       // fade in de 10ms / fade out de 90ms — som "soft", sensorialmente calmo.
-      final edge = (t / 0.01).clamp(0.0, 1.0) *
-          (((seconds - t) / 0.12).clamp(0.0, 1.0));
-      final s = (sample(t) * amplitude * edge).clamp(-1.0, 1.0);
-      data.setInt16(44 + i * 2, (s * 32767).round(), Endian.little);
+      final edge =
+          (t / 0.01).clamp(0.0, 1.0) * ((sec - t) / 0.12).clamp(0.0, 1.0);
+      final s = _safe(sample(t) * amplitude * edge) * 32767;
+      data.setInt16(44 + i * 2, s.round(), Endian.little);
     }
     return data.buffer.asUint8List();
   }
