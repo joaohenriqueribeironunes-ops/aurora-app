@@ -32,34 +32,7 @@ extension WeatherModeX on WeatherMode {
   String get key => toString().split('.').last;
 }
 
-/// Fonte de notícias confiável escolhida pelo usuário (Sessão Foco).
-class NewsSource {
-  final String name;
-  final String url; // URL do feed RSS
-
-  NewsSource({required this.name, required this.url});
-
-  Map<String, dynamic> toMap() => {'name': name, 'url': url};
-  factory NewsSource.fromMap(Map<String, dynamic> m) =>
-      NewsSource(name: m['name'] as String, url: m['url'] as String);
-}
-
-/// Uma manchette / item de resumo de notícias.
-class NewsItem {
-  final String source;
-  final String title;
-  final String summary;
-  final String link;
-
-  NewsItem({
-    required this.source,
-    required this.title,
-    required this.summary,
-    required this.link,
-  });
-}
-
-/// Compromisso (Sessão Foco) — com notificação agendada.
+/// Compromisso (Sessão Foco) — com alarme agendado.
 class Commitment {
   final String id;
   String title;
@@ -128,30 +101,14 @@ class Article {
 /// Estado global do app, persistido em shared_preferences como JSON.
 class AppState extends ChangeNotifier {
   static const _kWeather = 'aurora.weather';
-  static const _kSources = 'aurora.sources';
   static const _kCommitments = 'aurora.commitments';
   static const _kArticles = 'aurora.articles';
   static const _kSimonBest = 'aurora.simonBest';
-  static const _kNews = 'aurora.cachedNews';
-
-  /// Fontes confiáveis semeadas na primeira execução — o resumo de
-  /// manchetes funciona de primeira, sem configuração.
-  static final List<NewsSource> defaultSources = [
-    NewsSource(name: 'Agência FAPESP', url: 'https://agencia.fapesp.br/feed/'),
-    NewsSource(name: 'Olhar Digital', url: 'https://olhardigital.com.br/feed/'),
-    NewsSource(name: 'BBC Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml'),
-    NewsSource(name: 'TecMundo', url: 'https://www.tecmundo.com.br/feed'),
-  ];
 
   WeatherMode weather = WeatherMode.sunny;
-  List<NewsSource> sources = [];
   List<Commitment> commitments = [];
   List<Article> articles = [];
   int simonBest = 0;
-
-  // Cache das últimas manchetes carregadas (modo offline).
-  List<NewsItem> cachedNews = [];
-  DateTime? cachedNewsAt;
 
   late SharedPreferences _prefs;
 
@@ -161,14 +118,6 @@ class AppState extends ChangeNotifier {
       (m) => m.key == (_prefs.getString(_kWeather) ?? 'sunny'),
       orElse: () => WeatherMode.sunny,
     );
-    sources = _decode(_prefs.getString(_kSources))
-        .map((m) => NewsSource.fromMap(m))
-        .toList();
-    if (_prefs.getString(_kSources) == null) {
-      // primeira execução: semeia as fontes padrão para o resumo funcionar
-      sources = List.of(defaultSources);
-      await _prefs.setString(_kSources, jsonEncode(sources.map((e) => e.toMap()).toList()));
-    }
     commitments = _decode(_prefs.getString(_kCommitments))
         .map((m) => Commitment.fromMap(m))
         .toList();
@@ -176,14 +125,6 @@ class AppState extends ChangeNotifier {
         .map((m) => Article.fromMap(m))
         .toList();
     simonBest = _prefs.getInt(_kSimonBest) ?? 0;
-    cachedNews = _decode(_prefs.getString(_kNews))
-        .map((m) => NewsItem(
-              source: m['source'] as String,
-              title: m['title'] as String,
-              summary: (m['summary'] ?? '') as String,
-              link: (m['link'] ?? '') as String,
-            ))
-        .toList();
   }
 
   List<Map<String, dynamic>> _decode(String? raw) {
@@ -205,34 +146,6 @@ class AppState extends ChangeNotifier {
   Future<void> setWeather(WeatherMode mode) async {
     weather = mode;
     await _save(_kWeather, mode.key);
-  }
-
-  // ---------- Fontes de notícias ----------
-  Future<void> addSource(NewsSource s) async {
-    if (sources.any((e) => e.url == s.url)) return;
-    sources.add(s);
-    await _save(_kSources, jsonEncode(sources.map((e) => e.toMap()).toList()));
-  }
-
-  Future<void> removeSource(String url) async {
-    sources.removeWhere((e) => e.url == url);
-    await _save(_kSources, jsonEncode(sources.map((e) => e.toMap()).toList()));
-  }
-
-  Future<void> cacheNews(List<NewsItem> items) async {
-    cachedNews = items;
-    cachedNewsAt = DateTime.now();
-    // persiste as últimas manchetes — reaparecem offline no próximo abrir
-    final encode = items.take(24).map((n) => {
-          'source': n.source,
-          'title': n.title,
-          'summary': n.summary,
-          'link': n.link,
-        }).toList();
-    try {
-      await _prefs.setString(_kNews, jsonEncode(encode));
-    } catch (_) {}
-    notifyListeners();
   }
 
   // ---------- Compromissos ----------

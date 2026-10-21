@@ -136,15 +136,20 @@ class NotificationsService {
 
   static const _channel = AndroidNotificationDetails(
     'aurora_foco',
-    'Compromissos — Foco',
-    channelDescription: 'Lembretes dos compromissos da sessão Foco',
-    importance: Importance.high,
-    priority: Priority.high,
+    'Alarme — Compromissos',
+    channelDescription:
+        'Alarmes dos compromissos da sessão Foco — abrem em tela cheia '
+        'e tocam com som/vibração máxima, mesmo com a tela apagada',
+    importance: Importance.max,
+    priority: Priority.max,
     color: Color(0xFF46E0A6),
     showWhen: true,
     autoCancel: true,
     enableVibration: true,
-    category: AndroidNotificationCategory.reminder,
+    category: AndroidNotificationCategory.alarm,
+    fullScreenIntent: true,
+    playSound: true,
+    channelShowBadge: true,
   );
 
   /// Notificação imediata.
@@ -157,7 +162,9 @@ class NotificationsService {
     );
   }
 
-  /// Lembrete agendado no horário do compromisso.
+  /// Alarme agendado no horário do compromisso — usa AlarmManager
+  /// .setAlarmClock (modo alarmClock): o Android trata como despertador
+  /// de verdade, não é adiado pelo modo Doze nem pela bateria.
   Future<void> schedule(String title, String body, DateTime when) async {
     final plugin = _plugin;
     await plugin.zonedSchedule(
@@ -166,8 +173,16 @@ class NotificationsService {
       body,
       tz.TZDateTime.from(when, tz.local),
       const NotificationDetails(android: _channel, iOS: DarwinNotificationDetails()),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.alarmClock,
     );
+  }
+
+  /// Cancela o alarme de um compromisso (o id é derivado do título,
+  /// igual ao schedule).
+  Future<void> cancelFor(String title) async {
+    try {
+      await _plugin.cancel(title.hashCode & 0x7fffffff);
+    } catch (_) {}
   }
 }
 

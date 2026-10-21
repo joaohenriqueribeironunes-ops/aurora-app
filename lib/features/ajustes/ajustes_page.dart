@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../core/app_state.dart';
 import '../../core/theme.dart';
 import '../../main.dart' show CrashStore;
-import '../../widgets/fields.dart';
 
 /// Sessão 5 — Ajustes:
 /// · Painel de design: escolha do clima (Ensolarado / Névoa / Aurora)
@@ -12,13 +11,6 @@ import '../../widgets/fields.dart';
 /// · Gerência das fontes de notícias confiáveis da Sessão Foco
 class AjustesPage extends StatelessWidget {
   const AjustesPage({super.key});
-
-  static final _presets = [
-    NewsSource(name: 'Ciência — Agência FAPESP', url: 'https://agencia.fapesp.br/feed/'),
-    NewsSource(name: 'Ciência — Olhar Digital', url: 'https://olhardigital.com.br/feed/'),
-    NewsSource(name: 'Mundo — BBC Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml'),
-    NewsSource(name: 'Tech — TecMundo', url: 'https://www.tecmundo.com.br/feed'),
-  ];
 
   static IconData _iconOf(WeatherMode m) {
     switch (m) {
@@ -98,76 +90,8 @@ class AjustesPage extends StatelessWidget {
         ),
         const SizedBox(height: 24),
 
-        SectionTitle('Fontes de notícias'),
-        const SizedBox(height: 10),
-        if (state.sources.isEmpty)
-          const Glass(
-            child: Text(
-              'Nenhuma fonte ainda. Adicione feeds RSS de sites confiáveis '
-              'para a sessão Foco montar o resumo do seu dia.',
-              style: TextStyle(color: AColors.textSecondary, fontSize: 13.5, height: 1.4),
-            ),
-          )
-        else
-          ...state.sources.map((s) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Glass(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.rss_feed, color: AColors.accent, size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(s.name,
-                                style: const TextStyle(
-                                    fontSize: 15, fontWeight: FontWeight.w600)),
-                            Text(s.url,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: AColors.textSecondary,
-                                    fontSize: 11.5)),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            size: 17, color: AColors.textSecondary),
-                        onPressed: () =>
-                            context.read<AppState>().removeSource(s.url),
-                      ),
-                    ],
-                  ),
-                ),
-              )),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          alignment: WrapAlignment.center,
-          children: [
-            CapsuleButton(
-              label: 'Adicionar fonte',
-              icon: Icons.add_rounded,
-              onPressed: () => _addSource(context),
-            ),
-            ..._presets
-                .where((p) =>
-                    !state.sources.any((s) => s.url == p.url))
-                .map(
-                  (p) => CapsuleButton(
-                    label: '+ ${p.name.split('—').last.trim()}',
-                    icon: Icons.rss_feed_rounded,
-                    color: AColors.textSecondary,
-                    onPressed: () =>
-                        context.read<AppState>().addSource(p),
-                  ),
-                ),
-          ],
-        ),
         const SizedBox(height: 24),
+
         SectionTitle('Suas marcas com o app'),
         const SizedBox(height: 10),
         Glass(
@@ -214,9 +138,9 @@ class AjustesPage extends StatelessWidget {
         const Glass(
           child: Text(
             'Aurora · feito para cérebros divergentes (TEA/TDAH)\n'
-            'Tudo roda no seu aparelho: resumo de notícias é consumido quando '
-            'você puxa para atualizar, música vem do seu dispositivo, e a IA '
-            'das ideias processa tudo na hora, sem acessar nuvem.',
+            'Tudo roda no seu aparelho: compromissos disparam alarmes no '
+            'horário, música vem do seu dispositivo, e a IA das ideias '
+            'processa tudo na hora, sem acessar nuvem.',
             style: TextStyle(color: AColors.textSecondary, fontSize: 12.5, height: 1.5),
           ),
         ),
@@ -259,21 +183,5 @@ class AjustesPage extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _addSource(BuildContext context) async {
-    final name =
-        await TextFieldEx.ask(context, title: 'Fonte', hint: 'Nome (BBC, G1…)');
-    if (name == null || name.trim().isEmpty) return;
-    final url = await TextFieldEx.ask(
-      context,
-      title: 'Feed RSS',
-      hint: 'URL completa do feed',
-      keyboardType: TextInputType.url,
-    );
-    if (url == null || url.trim().isEmpty) return;
-    await context
-        .read<AppState>()
-        .addSource(NewsSource(name: name.trim(), url: url.trim()));
   }
 }

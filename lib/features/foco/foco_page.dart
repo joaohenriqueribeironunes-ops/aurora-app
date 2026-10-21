@@ -6,11 +6,10 @@ import '../../core/app_state.dart';
 import '../../core/theme.dart';
 import '../../main.dart' show notifications;
 import '../../widgets/fields.dart';
-import 'news_service.dart';
 
-/// Sessão 1 — Foco:
-/// · Resumo das manchetes das fontes confiáveis do usuário
-/// · Próximos compromissos, com notificações e lembretes agendados
+/// Sessão 1 — Foco: agenda de compromissos com **alarme de verdade** —
+/// no horário, o lembrete abre em tela cheia e toca sonoridade de alarme
+/// do sistema (AlarmManager.setAlarmClock — nunca silenciado pela bateria).
 class FocoPage extends StatefulWidget {
   const FocoPage({super.key});
 
@@ -19,49 +18,6 @@ class FocoPage extends StatefulWidget {
 }
 
 class _FocoPageState extends State<FocoPage> {
-  bool _loadingNews = false;
-  List<NewsItem> _news = [];
-
-  @override
-  void initState() {
-    super.initState();
-    final state = context.read<AppState>();
-    _news = state.cachedNews;
-    if (_news.isEmpty) _refreshNews();
-  }
-
-  Future<void> _refreshNews() async {
-    final state = context.read<AppState>();
-    if (state.sources.isEmpty) return;
-    setState(() => _loadingNews = true);
-    List<NewsItem> items = [];
-    String? error;
-    try {
-      items = await NewsService.fetchAll(state.sources);
-      if (items.isEmpty) {
-        error = 'As ${state.sources.length} fontes responderam vazio — '
-            'verifique sua internet ou tente novamente mais tarde.';
-      }
-    } catch (e) {
-      error = 'Falha na busca de notícias: $e';
-    }
-    if (!mounted) return;
-    setState(() {
-      _news = items;
-      _loadingNews = false;
-    });
-    if (items.isNotEmpty) {
-      await state.cacheNews(items);
-    }
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(error),
-        backgroundColor: const Color(0xFF0E1F18),
-        duration: const Duration(seconds: 5),
-      ));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
@@ -71,89 +27,37 @@ class _FocoPageState extends State<FocoPage> {
         .toList()
       ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
-    return RefreshIndicator(
-      onRefresh: _refreshNews,
-      color: AColors.accent,
-      backgroundColor: AColors.bgTop,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-        children: [
-          // ---------- Resumo de notícias ----------
-          SectionTitle('Resumo de hoje — Boas fontes'),
-          const SizedBox(height: 4),
-          Text(
-            '${state.sources.length} fontes · ' +
-                (state.cachedNewsAt == null
-                    ? 'nunca atualizado'
-                    : 'atualizado às ${_two(state.cachedNewsAt!.hour)}:${_two(state.cachedNewsAt!.minute)}'),
-            style: const TextStyle(
-                color: AColors.textSecondary, fontSize: 11),
-          ),
-          const SizedBox(height: 8),
-          Glass(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (state.sources.isEmpty)
-                  const Text(
-                    'Você ainda não escolheu fontes de notícias.\n'
-                    'Adicione sites confiáveis na Sessão Ajustes.',
-                    style: TextStyle(color: AColors.textSecondary, fontSize: 14),
-                  )
-                else if (_loadingNews && _news.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AColors.accent,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  )
-                else ...[
-                  _NewsDigest(news: _news),
-                  if (_loadingNews)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Center(
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              color: AColors.accent, strokeWidth: 2),
-                        ),
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // ---------- Compromissos ----------
-          SectionTitle('Próximos compromissos'),
-          const SizedBox(height: 10),
-          if (upcoming.isEmpty)
-            const _Glassless()
-          else
-            ...upcoming.take(4).map((c) => _CommitmentCard(commitment: c)),
-          if (passed.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            SectionTitle('Passados'),
-            const SizedBox(height: 10),
-            ...passed.take(2).map((c) => _CommitmentCard(commitment: c, dimmed: true)),
-          ],
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      children: [
+        SectionTitle('Agenda — compromissos'),
+        const SizedBox(height: 4),
+        Text(
+          'No horário, o lembrete abre em tela cheia e toca como alarme '
+          '(toca mesmo com a tela apagada; não é silenciado pela bateria).',
+          style: TextStyle(color: AColors.textSecondary, fontSize: 12),
+        ),
+        const SizedBox(height: 10),
+        if (upcoming.isEmpty)
+          const _Glassless()
+        else
+          ...upcoming.take(6).map((c) => _CommitmentCard(commitment: c)),
+        if (passed.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Center(
-            child: CapsuleButton(
-              label: 'Novo compromisso',
-              icon: Icons.event,
-              onPressed: () => _newCommitment(context),
-            ),
-          ),
-          const SizedBox(height: 30),
+          SectionTitle('Passados'),
+          const SizedBox(height: 10),
+          ...passed.take(2).map((c) => _CommitmentCard(commitment: c, dimmed: true)),
         ],
-      ),
+        const SizedBox(height: 16),
+        Center(
+          child: CapsuleButton(
+            label: 'Novo compromisso',
+            icon: Icons.event,
+            onPressed: () => _newCommitment(context),
+          ),
+        ),
+        const SizedBox(height: 30),
+      ],
     );
   }
 
@@ -208,7 +112,7 @@ class _FocoPageState extends State<FocoPage> {
       c.dateTime,
     );
     await notifications.now(
-      'Lembrete agendado ✓',
+      'Alarme agendado ✓',
       '${DateFormat('dd/MM HH:mm').format(c.dateTime)} — ${c.title}',
     );
   }
@@ -226,7 +130,8 @@ class _Glassless extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Sem compromissos à frente. Adicione um para receber lembrete no horário.',
+              'Sem compromissos à frente. Um compromisso agendado toca '
+              'como alarme na hora, com tela cheia.',
               style: TextStyle(color: AColors.textSecondary, fontSize: 14),
             ),
           ),
@@ -236,54 +141,7 @@ class _Glassless extends StatelessWidget {
   }
 }
 
-/// Digest das notícias — resumo curto dos assuntos de hoje.
-class _NewsDigest extends StatelessWidget {
-  final List<NewsItem> news;
-  const _NewsDigest({required this.news});
-
-  @override
-  Widget build(BuildContext context) {
-    if (news.isEmpty) {
-      return const Text(
-        'Sem manchetes agora (provavelmente sem rede). Tente puxar para atualizar.',
-        style: TextStyle(color: AColors.textSecondary, fontSize: 14),
-      );
-    }
-    // Agrupa por fonte: 1 linha assunto + 1 linha fonte/detalhe
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final n in news.take(12))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  n.title,
-                  style: const TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${n.source}'
-                  '${n.summary.isEmpty ? '' : ' · ${n.summary}'}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: AColors.textSecondary, fontSize: 12.5),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Cartão de compromisso com botão de re-lembrar agora.
+/// Cartão de compromisso — lembrar agora / excluir (cancela o alarme).
 String _two(int n) => n.toString().padLeft(2, '0');
 
 class _CommitmentCard extends StatelessWidget {
@@ -308,7 +166,7 @@ class _CommitmentCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  Icons.event,
+                  dimmed ? Icons.event_busy : Icons.alarm,
                   color: dimmed ? Colors.grey : AColors.accent,
                   size: 18,
                 ),
@@ -323,15 +181,25 @@ class _CommitmentCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (!dimmed)
+                  IconButton(
+                    icon: const Icon(Icons.schedule_send,
+                        size: 18, color: AColors.accent),
+                    tooltip: 'Lembrar agora',
+                    onPressed: () {
+                      notifications.now(
+                        'Compromisso: ${c.title}',
+                        df,
+                      );
+                    },
+                  ),
                 IconButton(
-                  icon: const Icon(Icons.schedule_send,
-                      size: 18, color: AColors.accent),
-                  tooltip: 'Lembrar agora',
-                  onPressed: () {
-                    notifications.now(
-                      'Compromisso: ${c.title}',
-                      df,
-                    );
+                  icon: const Icon(Icons.delete_outline,
+                      size: 18, color: AColors.textSecondary),
+                  tooltip: 'Excluir',
+                  onPressed: () async {
+                    await notifications.cancelFor(c.title);
+                    await context.read<AppState>().removeCommitment(c.id);
                   },
                 ),
               ],
