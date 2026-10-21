@@ -51,7 +51,7 @@ class _WeatherBackgroundState extends State<WeatherBackground>
   }
 
   void _seed() {
-    _orbs = List.generate(14, (i) {
+    _orbs = List.generate(10, (i) {
       return _Orb(
         x: _rng.nextDouble(),
         y: _rng.nextDouble(),
@@ -61,7 +61,7 @@ class _WeatherBackgroundState extends State<WeatherBackground>
         hue: 120 + _rng.nextDouble() * 45,
       );
     });
-    _fogs = List.generate(9, (i) {
+    _fogs = List.generate(6, (i) {
       return _FogBlob(
         x: _rng.nextDouble(),
         y: _rng.nextDouble(),
@@ -208,7 +208,6 @@ class _WeatherPainter extends CustomPainter {
         height: f.r * 1.1,
       );
       final paint = Paint()
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 70)
         ..shader = RadialGradient(
           colors: [
             Colors.white.withOpacity(0.07),

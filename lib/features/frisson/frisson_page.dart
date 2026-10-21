@@ -6,10 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../../core/app_state.dart';
 import '../../core/audio_engine.dart';
 import '../../core/theme.dart';
 

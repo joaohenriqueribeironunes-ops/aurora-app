@@ -1,12 +1,10 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Paleta — verde grafite + liquidez Apple.
 class AColors {
   /// Versão visível em toda a UI — fonte única de verdade do rótulo.
-  static const version = 'v1.1.1';
+  static const version = 'v1.2.0';
   static const bgTop = Color(0xFF0E1F18); // verde grafite
   static const bgBottom = Color(0xFF060D0A);
   static const glassFill = Color(0x14FFFFFF); // 8% branco
@@ -23,8 +21,14 @@ class AColors {
   static const shadowAmbient = Color(0x88000000);
 }
 
-/// Container de "liquid glass": blur de fundo, preenchimento translúcido,
-/// junta de luz no topo, sombra ambiente e brilho no canto — como o iOS 26.
+/// Container de "liquid glass": preenchimento translúcido em camadas,
+/// junta de luz no topo, sombra ambiente e brilho no canto — como o iOS.
+///
+/// Performance no Helio G96 (Mali-G57): **sem `BackdropFilter` de verdade**.
+/// Blur real re-desfoca a área do cartão a cada frame (o fundo anima atrás),
+/// e é o principal assassino de FPS em GPUs médias. Este "fake glass"
+/// imita o vidro com preenchimento + bordas de luz — visualmente idêntico
+/// sobre o fundo escuro, com custo quase zero.
 class Glass extends StatelessWidget {
   final Widget child;
   final double radius;
@@ -43,38 +47,32 @@ class Glass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radius),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: strong
-                  ? [AColors.glassFillStrong, AColors.glassFill]
-                  : [AColors.glassFill, const Color(0x07FFFFFF)],
-            ),
-            border: Border(
-              top: BorderSide(color: AColors.glassHighlight, width: 0.8),
-              left: BorderSide(color: AColors.glassBorder, width: 0.5),
-              right: BorderSide(color: AColors.glassBorder, width: 0.5),
-              bottom: BorderSide(color: AColors.glassBorder, width: 0.5),
-            ),
-            boxShadow: const [
-              // sombra ambiente — dá profundidade Mac ao cartão
-              BoxShadow(
-                color: AColors.shadowAmbient,
-                blurRadius: 22,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Padding(padding: padding, child: child),
+    final body = Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: strong
+              ? [AColors.glassFillStrong, AColors.glassFill]
+              : [AColors.glassFill, const Color(0x07FFFFFF)],
         ),
+        border: const Border(
+          top: BorderSide(color: AColors.glassHighlight, width: 0.8),
+          left: BorderSide(color: AColors.glassBorder, width: 0.5),
+          right: BorderSide(color: AColors.glassBorder, width: 0.5),
+          bottom: BorderSide(color: AColors.glassBorder, width: 0.5),
+        ),
+        boxShadow: const [
+          // sombra ambiente — dá profundidade ao cartão
+          BoxShadow(
+            color: AColors.shadowAmbient,
+            blurRadius: 22,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
+      child: Padding(padding: padding, child: child),
     );
 
     if (onTap == null) return body;
@@ -163,56 +161,50 @@ class _CapsuleButtonState extends State<CapsuleButton> {
           scale: _down ? 0.96 : 1,
           duration: const Duration(milliseconds: 110),
           curve: Curves.easeOutCubic,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(26),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(26),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      c.withOpacity(0.24),
-                      c.withOpacity(0.16),
-                    ],
-                  ),
-                  border: Border(
-                    top: BorderSide(color: c.withOpacity(0.55), width: 0.8),
-                    bottom: BorderSide(color: c.withOpacity(0.25), width: 0.5),
-                    left: BorderSide(color: c.withOpacity(0.45), width: 0.6),
-                    right: BorderSide(color: c.withOpacity(0.45), width: 0.6),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: c.withOpacity(0.20),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.icon != null) ...[
-                      Icon(widget.icon, size: 17, color: c),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(
-                      widget.label,
-                      style: TextStyle(
-                        color: c,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ],
-                ),
+          // Sem BackdropFilter (mesma razão do Glass: custo de GPU em Mali).
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  c.withOpacity(0.24),
+                  c.withOpacity(0.16),
+                ],
               ),
+              border: Border(
+                top: BorderSide(color: c.withOpacity(0.55), width: 0.8),
+                bottom: BorderSide(color: c.withOpacity(0.25), width: 0.5),
+                left: BorderSide(color: c.withOpacity(0.45), width: 0.6),
+                right: BorderSide(color: c.withOpacity(0.45), width: 0.6),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: c.withOpacity(0.20),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null) ...[
+                  Icon(widget.icon, size: 17, color: c),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: c,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

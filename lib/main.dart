@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -332,18 +331,16 @@ class _HomeRootState extends State<HomeRoot> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-              child: Container(
-                height: 64,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: AColors.glassFillStrong,
-                  border: Border.all(color: AColors.glassBorder, width: 0.6),
-                ),
-                child: Row(
+          // Fake glass: sem BackdropFilter — blur real no dock re-desfocaria
+          // uma faixa ampla do fundo animado a cada frame (Mali-G57 sofre).
+          child: Container(
+            height: 64,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              color: AColors.glassFillStrong,
+              border: Border.all(color: AColors.glassBorder, width: 0.6),
+            ),
+            child: Row(
                   children: List.generate(5, (i) {
                     final selected = i == _tab;
                     return Expanded(
@@ -398,8 +395,6 @@ class _HomeRootState extends State<HomeRoot> {
                       ),
                     );
                   }),
-                ),
-              ),
             ),
           ),
         ),
