@@ -17,9 +17,8 @@ class DivergentEngine {
     'no', 'na', 'nos', 'nas', 'por', 'para', 'com', 'e', 'ou', 'que', 'se',
     'ao', 'à', 'é', 'são', 'foi', 'ser', 'sua', 'seu', 'suas', 'seus', 'como',
     'mais', 'mas', 'the', 'of', 'to', 'and', 'in', 'is', 'was', 'for', 'on',
-    'with', 'as', 'by', 'at', 'it', 'do', 'this', 'be', 'not', 'you', 'or',
-    'an', 'from', 'que', 'sobre', 'após', 'entre', 'sem', 'antes', 'até',
-    'the', 'of', 'and', 'in', 'to', 'was',
+    'with', 'as', 'by', 'at', 'it', 'this', 'be', 'not', 'you', 'or',
+    'an', 'from', 'sobre', 'após', 'entre', 'sem', 'antes', 'até',
   };
 
   /// Extrai palavras mais frequentes como eixos temáticos.

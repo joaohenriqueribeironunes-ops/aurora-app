@@ -47,9 +47,14 @@ class _FrissonPageState extends State<FrissonPage> {
   void initState() {
     super.initState();
     _musicStateSub = _musicPlayer.playerStateStream.listen((s) {
+      if (!mounted) return;
       if (s.processingState == ProcessingState.completed) {
         _musicPlayer.seek(Duration.zero);
       }
+      setState(() {});
+    });
+    _wavePlayer.playerStateStream.listen((_) {
+      if (mounted) setState(() {});
     });
   }
 
@@ -81,8 +86,8 @@ class _FrissonPageState extends State<FrissonPage> {
 
   Future<void> _playWave() async {
     try {
-      final cached = _bankBuffer;
-      await _wavePlayer.setAudioSource(cached);
+      final source = await _bankSource();
+      await _wavePlayer.setAudioSource(source);
       await _wavePlayer.setLoopMode(LoopMode.one);
       await _wavePlayer.play();
       await _wavePlayer.setVolume(_waveVolume);
@@ -91,32 +96,35 @@ class _FrissonPageState extends State<FrissonPage> {
   }
 
   /// Cache do WAV por banco — evita regerar a cada play.
-  DataSource get _bankBuffer {
+  /// WAV vai para arquivo temporário e é tocado via AudioSource.file.
+  Future<AudioSource> _bankSource() async {
     final b = _bank;
-    if (_cacheBank == b && _cacheSource != null) return _cacheSource!;
+    if (_cacheBank == b && _cachePath != null) {
+      return AudioSource.file(_cachePath!);
+    }
     _cacheBank = b;
+    Uint8List bytes;
     switch (b) {
       case WaveBank.branco:
-        _cacheSource =
-            ByteArrayAudioSource(WavComposer.whiteNoise(seconds: 8));
+        bytes = WavComposer.whiteNoise(seconds: 8);
         break;
       case WaveBank.marrom:
-        _cacheSource =
-            ByteArrayAudioSource(WavComposer.brownNoise(seconds: 10));
+        bytes = WavComposer.brownNoise(seconds: 10);
         break;
       default:
-        _cacheSource = ByteArrayAudioSource(WavComposer.binaural(
+        bytes = WavComposer.binaural(
           baseCarrier: b.carrier,
           beatHz: b.beat,
           seconds: 12,
           amplitude: 0.32,
-        ));
+        );
     }
-    return _cacheSource!;
+    _cachePath = await TempWav.write('aurora_wave_${b.key}', bytes);
+    return AudioSource.file(_cachePath!);
   }
 
   WaveBank? _cacheBank;
-  DataSource? _cacheSource;
+  String? _cachePath;
 
   Future<void> _toggleWave() async {
     if (_wavePlaying) {
@@ -164,7 +172,10 @@ class _FrissonPageState extends State<FrissonPage> {
     setState(() => _reinterpret = true);
     const tick = Duration(milliseconds: 200);
     _reinterpretTimer = Timer.periodic(tick, (t) async {
-      if (!_reinterpret) return t.cancel();
+      if (!_reinterpret) {
+        t.cancel();
+        return;
+      }
       setState(() {
         _phase = (_phase + tick.inMilliseconds / 1000 / _cycleSeconds) % 1.0;
       });
@@ -198,9 +209,7 @@ class _FrissonPageState extends State<FrissonPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_musicPlayer, _wavePlayer]),
-      builder: (context, _) => ListView(
+    return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: [
         SectionTitle('Ondas'),
@@ -394,7 +403,6 @@ class _FrissonPageState extends State<FrissonPage> {
         ),
         const SizedBox(height: 30),
       ],
-      );
     );
   }
 }

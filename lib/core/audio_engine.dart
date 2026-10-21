@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+
+import 'package:path_provider/path_provider.dart';
 
 /// Geração de WAV em memória (PCM 16-bit) — 100% local, sem assets.
 ///
@@ -140,6 +143,17 @@ class WavComposer {
   }
 }
 
+/// WAV → arquivo temporário (API estável do just_audio em versão 0.10+
+/// não expõe fonte em memória; tocar via AudioSource.file funciona sempre).
+class TempWav {
+  static Future<String> write(String name, Uint8List bytes) async {
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}${Platform.pathSeparator}$name.wav');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+}
+
 /// Bancos de onda da Sessão Frisson.
 /// Frequências: "beat" é a diferença entre os ouvidos (onda binaural real).
 enum WaveBank {
@@ -158,4 +172,6 @@ enum WaveBank {
   final double beat;
 
   const WaveBank(this.label, this.subtitle, this.carrier, this.beat);
+
+  String get key => toString().split('.').last;
 }

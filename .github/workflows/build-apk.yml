@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-tags: true
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -44,7 +46,14 @@ jobs:
       - name: Rename APK
         run: mv build/app/outputs/flutter-apk/app-release.apk aurora-app.apk
 
+      - name: Resolve release tag
+        id: tag
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          if [ -z "$TAG" ]; then TAG="$(git describe --tags --abbrev=0)"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Upload APK to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.ref_name }}" aurora-app.apk --clobber --repo ${{ github.repository }}
+        run: gh release upload "${{ steps.tag.outputs.tag }}" aurora-app.apk --clobber --repo ${{ github.repository }}

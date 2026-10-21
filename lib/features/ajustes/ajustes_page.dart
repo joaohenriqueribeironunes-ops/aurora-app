@@ -12,7 +12,7 @@ import '../../widgets/fields.dart';
 class AjustesPage extends StatelessWidget {
   const AjustesPage({super.key});
 
-  static const _presets = [
+  static final _presets = [
     NewsSource(name: 'Ciência — Agência FAPESP', url: 'https://agencia.fapesp.br/feed/'),
     NewsSource(name: 'Ciência — Olhar Digital', url: 'https://olhardigital.com.br/feed/'),
     NewsSource(name: 'Mundo — BBC Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml'),

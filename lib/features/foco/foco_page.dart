@@ -302,7 +302,7 @@ class _CommitmentCard extends StatelessWidget {
                   onPressed: () {
                     notifications.now(
                       'Compromisso: ${c.title}',
-                      df.format(c.dateTime),
+                      df,
                     );
                   },
                 ),
@@ -310,7 +310,7 @@ class _CommitmentCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              df.format(c.dateTime),
+              df,
               style: TextStyle(
                 color: dimmed ? Colors.grey : AColors.textSecondary,
                 fontSize: 13,

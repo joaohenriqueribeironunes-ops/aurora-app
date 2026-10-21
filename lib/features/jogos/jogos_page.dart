@@ -32,14 +32,7 @@ class JogosPage extends StatefulWidget {
 class _JogosPageState extends State<JogosPage> {
   final _player = AudioPlayer();
   final _rng = math.Random();
-
-  List<int> _sequence = [];
-  int _round = 0;
-  bool _watching = false;
-  int? _flashIndex;
-  int _score = 0;
-  int _best = 0;
-  bool _gameOver = false;
+  final _toneCache = <String, String>{}; // chave → arquivo temporário
 
   @override
   void initState() {
@@ -52,6 +45,28 @@ class _JogosPageState extends State<JogosPage> {
     _player.dispose();
     super.dispose();
   }
+
+  /// Prepara (uma vez) o WAV da cor e devolve o caminho de arquivo.
+  Future<String> _tonePath({int? index, bool gameOver = false}) async {
+    final key = gameOver ? 'gameover' : 'tone$index';
+    var path = _toneCache[key];
+    if (path != null) return path;
+    const freqs = [261.6, 329.6, 392.0, 523.3];
+    final bytes = gameOver
+        ? WavComposer.tone(freq: 110, seconds: 0.9, brightness: 0)
+        : WavComposer.tone(freq: freqs[index!], seconds: 0.45);
+    path = await TempWav.write('aurora_$key', bytes);
+    _toneCache[key] = path;
+    return path;
+  }
+
+  List<int> _sequence = [];
+  int _round = 0;
+  bool _watching = false;
+  int? _flashIndex;
+  int _score = 0;
+  int _best = 0;
+  bool _gameOver = false;
 
   void _start() {
     setState(() {
@@ -84,11 +99,9 @@ class _JogosPageState extends State<JogosPage> {
   Future<void> _playTone(int index, {bool isGameOver = false}) async {
     if (!mounted) return;
     setState(() => _flashIndex = index);
-    final wav = isGameOver
-        ? WavComposer.tone(freq: 110, seconds: 0.9, brightness: 0)
-        : WavComposer.tone(freq: _GameColors.freqs[index], seconds: 0.45);
     try {
-      await _player.setAudioSource(ByteArrayAudioSource(wav));
+      final path = await _tonePath(index: index, gameOver: isGameOver);
+      await _player.setAudioSource(AudioSource.file(path));
       await _player.play();
     } catch (_) {
       // erro de audio não pausa o jogo
