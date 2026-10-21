@@ -138,19 +138,38 @@ class AuroraApp extends StatelessWidget {
       title: 'Aurora',
       debugShowCheckedModeBanner: false,
       builder: (context, widget) {
-        // Em vez de tela preta/vermelha, mostra um diagnóstico de vidro.
+        // Em vez de tela preta/vermelha, mostra um diagnóstico de vidro
+        // com o início do stack — dá para copiar direto da tela.
         ErrorWidget.builder = (details) {
           CrashStore.failures++;
           CrashStore.last = '${details.exception}\n${details.stack ?? ''}';
+          final frames = details.stack?.toString().split('\n').take(7).join('\n') ?? '';
           return Container(
             color: const Color(0xFF060D0A),
             alignment: Alignment.center,
             padding: const EdgeInsets.all(24),
-            child: Text(
-              'Erro na interface — detalhes na Sessão Ajustes.\n'
-              '> ${details.exception}',
-              style: const TextStyle(
-                  color: Color(0xFF46E0A6), fontFamily: 'monospace'),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'v1.0.3 · erro na interface',
+                    style: TextStyle(
+                        color: Color(0xFF46E0A6),
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'monospace'),
+                  ),
+                  SizedBox(height: 12),
+                  SelectableText(
+                    '${details.exception}\n---\n$frames',
+                    style: const TextStyle(
+                        color: Color(0xFFB8EAD4),
+                        fontSize: 12,
+                        fontFamily: 'monospace'),
+                  ),
+                ],
+              ),
             ),
           );
         };
