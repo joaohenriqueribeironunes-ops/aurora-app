@@ -132,6 +132,16 @@ class AppState extends ChangeNotifier {
   static const _kCommitments = 'aurora.commitments';
   static const _kArticles = 'aurora.articles';
   static const _kSimonBest = 'aurora.simonBest';
+  static const _kNews = 'aurora.cachedNews';
+
+  /// Fontes confiáveis semeadas na primeira execução — o resumo de
+  /// manchetes funciona de primeira, sem configuração.
+  static final List<NewsSource> defaultSources = [
+    NewsSource(name: 'Agência FAPESP', url: 'https://agencia.fapesp.br/feed/'),
+    NewsSource(name: 'Olhar Digital', url: 'https://olhardigital.com.br/feed/'),
+    NewsSource(name: 'BBC Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml'),
+    NewsSource(name: 'TecMundo', url: 'https://www.tecmundo.com.br/feed'),
+  ];
 
   WeatherMode weather = WeatherMode.sunny;
   List<NewsSource> sources = [];
@@ -154,6 +164,11 @@ class AppState extends ChangeNotifier {
     sources = _decode(_prefs.getString(_kSources))
         .map((m) => NewsSource.fromMap(m))
         .toList();
+    if (_prefs.getString(_kSources) == null) {
+      // primeira execução: semeia as fontes padrão para o resumo funcionar
+      sources = List.of(defaultSources);
+      await _prefs.setString(_kSources, jsonEncode(sources.map((e) => e.toMap()).toList()));
+    }
     commitments = _decode(_prefs.getString(_kCommitments))
         .map((m) => Commitment.fromMap(m))
         .toList();
@@ -161,6 +176,14 @@ class AppState extends ChangeNotifier {
         .map((m) => Article.fromMap(m))
         .toList();
     simonBest = _prefs.getInt(_kSimonBest) ?? 0;
+    cachedNews = _decode(_prefs.getString(_kNews))
+        .map((m) => NewsItem(
+              source: m['source'] as String,
+              title: m['title'] as String,
+              summary: (m['summary'] ?? '') as String,
+              link: (m['link'] ?? '') as String,
+            ))
+        .toList();
   }
 
   List<Map<String, dynamic>> _decode(String? raw) {
@@ -199,6 +222,16 @@ class AppState extends ChangeNotifier {
   Future<void> cacheNews(List<NewsItem> items) async {
     cachedNews = items;
     cachedNewsAt = DateTime.now();
+    // persiste as últimas manchetes — reaparecem offline no próximo abrir
+    final encode = items.take(24).map((n) => {
+          'source': n.source,
+          'title': n.title,
+          'summary': n.summary,
+          'link': n.link,
+        }).toList();
+    try {
+      await _prefs.setString(_kNews, jsonEncode(encode));
+    } catch (_) {}
     notifyListeners();
   }
 

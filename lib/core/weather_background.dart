@@ -65,7 +65,7 @@ class _WeatherBackgroundState extends State<WeatherBackground>
       return _FogBlob(
         x: _rng.nextDouble(),
         y: _rng.nextDouble(),
-        r: 90 + _rng.nextDouble() * 150,
+        r: 130 + _rng.nextDouble() * 180,
         speed: 0.015 + _rng.nextDouble() * 0.035,
         phase: _rng.nextDouble() * 6.28,
       );
@@ -87,18 +87,9 @@ class _WeatherBackgroundState extends State<WeatherBackground>
         final t = _tick.value;
         return Stack(
           children: [
-            const ColoredBox(color: AColors.bgBottom),
-            // Degradê base verde grafite.
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AColors.bgTop, AColors.bgBottom],
-                  stops: [0.0, 0.85],
-                ),
-              ),
-            ),
+            // Verde grafite SÓLIDO — base do app. Os efeitos de clima
+            // são decoração de fundo por cima dela.
+            const ColoredBox(color: AColors.bgSolid),
             Positioned.fill(
               child: RepaintBoundary(
                 // isolado: o fundo repinta sozinho sem arrastar a página
@@ -204,27 +195,28 @@ class _WeatherPainter extends CustomPainter {
       final center = Offset(dx, dy);
       final rect = Rect.fromCenter(
         center: center,
-        width: f.r * 2,
-        height: f.r * 1.1,
+        width: f.r * 2.6,
+        height: f.r * 1.4,
       );
       final paint = Paint()
         ..shader = RadialGradient(
           colors: [
-            Colors.white.withOpacity(0.07),
-            Colors.white.withOpacity(0.0),
+            // névoa esverdeada clara, visível sobre o grafite
+            const Color(0xFFB7D9CB).withOpacity(0.13),
+            const Color(0xFFB7D9CB).withOpacity(0.0),
           ],
         ).createShader(rect);
       canvas.drawOval(rect, paint);
     }
-    // camada superior sutil, sempre presente
+    // véu superior — camada de nuvem sempre presente
     final full = Offset.zero & size;
     final paintTop = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.white.withOpacity(0.03),
-          Colors.white.withOpacity(0.0),
+          const Color(0xFFB7D9CB).withOpacity(0.10),
+          Colors.transparent,
         ],
       ).createShader(full);
     canvas.drawRect(full, paintTop);
@@ -235,8 +227,8 @@ class _WeatherPainter extends CustomPainter {
     for (int band = 0; band < 4; band++) {
       final path = Path()..moveTo(-20, 0);
       final step = w / 24;
-      final baseY = h * (0.12 + band * 0.09);
-      final amp = 40.0 + band * 22;
+      final baseY = h * (0.10 + band * 0.10);
+      final amp = 46.0 + band * 20;
       final speed = 0.5 + band * 0.22;
       final hue = 130.0 + band * 24;
       for (int i = 0; i <= 24; i++) {
@@ -247,20 +239,22 @@ class _WeatherPainter extends CustomPainter {
         path.lineTo(x, y);
       }
       path
-        ..lineTo(w + 20, -h * 0.6)
-        ..lineTo(-20, -h * 0.6)
+        ..lineTo(w + 20, -10)
         ..close();
+      // brilho pulsa devagar — a fita acorda e adormece
+      final pulse = 0.62 + 0.38 * (0.5 + 0.5 * math.sin(t * 0.6 + band * 1.4));
       final paint = Paint()
         ..blendMode = BlendMode.screen
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
+          stops: const [0.0, 0.72, 1.0],
           colors: [
-            HSLColor.fromAHSL(0.0, hue, 0.8, 0.6).toColor(),
-            HSLColor.fromAHSL(0.16, hue, 0.85, 0.65).toColor(),
-            HSLColor.fromAHSL(0.0, hue, 0.9, 0.7).toColor(),
+            HSLColor.fromAHSL(0.06 * pulse, hue, 0.85, 0.62).toColor(),
+            HSLColor.fromAHSL(0.46 * pulse, hue, 0.85, 0.66).toColor(),
+            HSLColor.fromAHSL(0.02 * pulse, hue, 0.9, 0.7).toColor(),
           ],
-        ).createShader(Offset.zero & size);
+        ).createShader(Rect.fromLTRB(0, 0, w, baseY + amp + 24));
       canvas.drawPath(path, paint);
     }
     // estrelinhas
