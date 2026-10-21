@@ -87,9 +87,22 @@ class _WeatherBackgroundState extends State<WeatherBackground>
         final t = _tick.value;
         return Stack(
           children: [
-            // Verde grafite SÓLIDO — base do app. Os efeitos de clima
-            // são decoração de fundo por cima dela.
-            const ColoredBox(color: AColors.bgSolid),
+            // Verde grafite com gradiente suave (vivo, não chapado) —
+            // estático (não anima), custo de performance zero.
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.55, 1.0],
+                  colors: [
+                    AColors.bgTop,
+                    AColors.bgSolid,
+                    AColors.bgBottom,
+                  ],
+                ),
+              ),
+            ),
             Positioned.fill(
               child: RepaintBoundary(
                 // isolado: o fundo repinta sozinho sem arrastar a página
@@ -202,7 +215,7 @@ class _WeatherPainter extends CustomPainter {
         ..shader = RadialGradient(
           colors: [
             // névoa esverdeada clara, visível sobre o grafite
-            const Color(0xFFB7D9CB).withOpacity(0.13),
+            const Color(0xFFB7D9CB).withOpacity(0.17),
             const Color(0xFFB7D9CB).withOpacity(0.0),
           ],
         ).createShader(rect);

@@ -4,25 +4,25 @@ import 'package:flutter/services.dart';
 /// Paleta — verde grafite + liquidez Apple.
 class AColors {
   /// Versão visível em toda a UI — fonte única de verdade do rótulo.
-  static const version = 'v1.4.0';
+  static const version = 'v1.5.0';
   static const bgTop = Color(0xFF0E1F18); // verde grafite
   static const bgBottom = Color(0xFF060D0A);
 
   /// Base SÓLIDA verde grafite — a cor do app inteiro.
-  /// Os efeitos de clima pintam por cima como decoração de fundo.
+  /// O gradiente do fundo usa bgTop/bgSolid/bgBottom com vida, sutil.
   static const bgSolid = Color(0xFF0C1B14);
-  static const glassFill = Color(0x14FFFFFF); // 8% branco
-  static const glassFillStrong = Color(0x24FFFFFF); // 14%
-  static const glassBorder = Color(0x33FFFFFF); // 20%
-  static const glassHighlight = Color(0x55FFFFFF); // 33% (borda superior)
+  static const glassFill = Color(0x0EFFFFFF); // 6% branco
+  static const glassFillStrong = Color(0x1AFFFFFF); // 10%
+  static const glassBorder = Color(0x1FFFFFFF); // 12%
+  static const glassHighlight = Color(0x26FFFFFF); // 15% (borda superior)
   static const textPrimary = Color(0xFFF2FBF7);
   static const textSecondary = Color(0xFF9DBFB1); // verde suave
   static const accent = Color(0xFF46E0A6); // verde-água Apple-adjacente
   static const accentSoft = Color(0x2646E0A6);
   static const danger = Color(0xFFFF6B6B);
 
-  /// Sombras ambientais (profundidade dos cartões de vidro).
-  static const shadowAmbient = Color(0x88000000);
+  /// Sombras ambientais (profundidade dos cartões de vidro) — sutil.
+  static const shadowAmbient = Color(0x5C000000);
 }
 
 /// Container de "liquid glass": preenchimento translúcido em camadas,
@@ -68,11 +68,11 @@ class Glass extends StatelessWidget {
           bottom: BorderSide(color: AColors.glassBorder, width: 0.5),
         ),
         boxShadow: const [
-          // sombra ambiente — dá profundidade ao cartão
+          // sombra ambiente — profundidade discreta ao cartão
           BoxShadow(
             color: AColors.shadowAmbient,
-            blurRadius: 22,
-            offset: Offset(0, 8),
+            blurRadius: 16,
+            offset: Offset(0, 6),
           ),
         ],
       ),

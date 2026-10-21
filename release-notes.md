@@ -1,26 +1,21 @@
-# Aurora v1.4.0
+# Aurora v1.5.0
 
-> **Confirme a versão no app:** abra o Aurora e veja o chip verde no canto direito do título — deve dizer **v1.4.0**. Se outro número aparecer, o aparelho rodou um APK antigo.
+> **Confira o chip verde no canto direito do título: deve dizer `v1.5.0`.**
 
-## ❌ Campo de notícias removido
-- A Sessão Foco agora é só **agenda de compromissos** — sem manchetes, sem feeds, sem configuração de fontes (removido também dos Ajustes).
-- Menos poluição visual, menos espera por internet.
+## 🎨 Fundo com vida de novo
+- O verde grafite sólido (que ficou "morto") voltou a ter um **gradiente suave** — escuro no topo passando pelo grafite até um verde quase preto embaixo. Vivo, mas sem exagero.
 
-## ⏰ Compromissos como ALARME de verdade
-- No horário, o lembrete abre **em tela cheia** (mesmo com o telefone travado) e toca com som e vibração máximos.
-- Usa o modo `AlarmManager.setAlarmClock` do Android — o sistema trata como **despertador**: não é adiado pelo modo Doze nem pela otimização de bateria.
-- Canal de notificação novo: "Alarme — Compromissos" (importância máxima).
-- Cada compromisso agora tem botão **excluir** — que cancela o alarme agendado também.
-- Ao agendar, o app pede a permissão de "alarmes e lembretes exatos" (Android 12+).
+## 🧊 Vidro mais SUTIL
+- Brilho das bordas reduzido a menos da metade, preenchimento e sombra mais discretos — acabamento sóbrio, não chamativo.
 
-## 💚 Mantido das versões anteriores
-- Verde grafite sólido na base; névoa e aurora visíveis como decoração de fundo.
-- Vidro leve (sem blur real) — performance para 60 FPS em GPUs médias.
-- Chip de versão visível no topo de todas as telas.
+## ⏰ Alarme: agora dá para TESTAR
+- Sessão Foco ganhou o botão **"Testar alarme (10 s)"**: agenda um alarme de verdade para daqui 10 segundos. toque, trave a tela do celular e espere — a tela cheia deve abrir com som e vibração no máximo.
+- **Importante no primeiro teste:** se o Android pedir *Alarmes e lembretes* / *Aparecer por cima de outros apps*, conceda. Sem isso a tela cheia não abre.
+
+## Mantido
+- Foco = agenda de compromissos (sem notícias); excluir compromisso cancela o alarme.
+- Compromissos disparam como despertador (AlarmManager.setAlarmClock) — imunes à otimização de bateria.
+- Fundo a 30 fps + vidro sem blur — leve para GPUs médias.
 
 ## 📥 Instalação
-1. **Desinstale** o Aurora atual do celular.
-2. Apague APKs antigos da pasta Downloads.
-3. Instale **aurora-v1.4.0-arm64.apk** (20–21 MB) — aparelhos modernos. Se falhar, use **aurora-v1.4.0-universal.apk** (55 MB).
-4. Se o Play Protect reclamar, toque em **"Instalar mesmo assim"**.
-5. Abra o app → chip verde deve dizer **v1.4.0**.
+Desinstale o Aurora atual, apague APKs antigos de Downloads, baixe **aurora-v1.5.0-arm64.apk** e, se o Play Protect perguntar, "Instalar mesmo assim".

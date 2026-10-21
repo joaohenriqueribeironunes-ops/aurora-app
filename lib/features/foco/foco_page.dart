@@ -56,8 +56,38 @@ class _FocoPageState extends State<FocoPage> {
             onPressed: () => _newCommitment(context),
           ),
         ),
+        const SizedBox(height: 12),
+        Center(
+          child: CapsuleButton(
+            label: 'Testar alarme (10 s)',
+            icon: Icons.alarm_on,
+            color: AColors.textSecondary,
+            onPressed: () => _testAlarm(context),
+          ),
+        ),
         const SizedBox(height: 30),
       ],
+    );
+  }
+
+  /// Alarme de teste: agenda de verdade (mesma via do despertador) para
+  /// daqui 10 segundos — trave a tela e confirme que abre em tela cheia.
+  Future<void> _testAlarm(BuildContext context) async {
+    final when = DateTime.now().add(const Duration(seconds: 10));
+    await notifications.schedule(
+      'Alarme de teste — Aurora',
+      'Se esta tela cheia abriu mesmo com o celular travado, o alarme '
+      'funciona ✓',
+      when,
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+            'Alarme de teste agendado para daqui 10 segundos — trave a '
+            'tela e aguarde.'),
+        duration: Duration(seconds: 4),
+      ),
     );
   }
 
