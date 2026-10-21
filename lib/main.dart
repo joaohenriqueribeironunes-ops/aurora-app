@@ -113,12 +113,6 @@ class AuroraApp extends StatelessWidget {
           primary: AColors.accent,
           surface: AColors.glassFill,
         ),
-        pageTransitionsTheme: PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: const CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: const CupertinoPageTransitionsBuilder(),
-          },
-        ),
       ),
       home: const HomeRoot(),
     );

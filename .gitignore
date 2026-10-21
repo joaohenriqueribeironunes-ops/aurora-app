@@ -9,3 +9,4 @@ build/
 *.apk
 *.aab
 build-error.log
+build2.log

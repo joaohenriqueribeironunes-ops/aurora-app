@@ -17,7 +17,7 @@ class DivergentEngine {
     'no', 'na', 'nos', 'nas', 'por', 'para', 'com', 'e', 'ou', 'que', 'se',
     'ao', 'à', 'é', 'são', 'foi', 'ser', 'sua', 'seu', 'suas', 'seus', 'como',
     'mais', 'mas', 'the', 'of', 'to', 'and', 'in', 'is', 'was', 'for', 'on',
-    'with', 'as', 'by', 'at', 'it', 'this', 'be', 'not', 'you', 'or',
+    'with', 'by', 'at', 'it', 'this', 'be', 'not', 'you', 'or',
     'an', 'from', 'sobre', 'após', 'entre', 'sem', 'antes', 'até',
   };
 
