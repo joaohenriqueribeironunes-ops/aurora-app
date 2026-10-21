@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
@@ -18,20 +20,50 @@ import 'features/jogos/jogos_page.dart';
 /// Serviço global de notificações (compromissos da Sessão Foco).
 final NotificationsService notifications = NotificationsService();
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  tzdata.initializeTimeZones();
+/// Registro do último erro — aparece na Sessão Ajustes (diagnóstico).
+class CrashStore {
+  static String last = 'Nenhum erro registrado';
+  static int failures = 0;
+}
 
-  final state = AppState();
-  await state.load();
-  await notifications.init();
+void main() {
+  // Erros globais nunca derrubam o app — são registrados e exibidos nos Ajustes.
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    FlutterError.onError = (details) {
+      CrashStore.failures++;
+      CrashStore.last = '${details.exception}\n${details.stack ?? ''}';
+      debugPrint('Aurora: erro de UI: ${details.exception}');
+    };
 
-  runApp(
-    ChangeNotifierProvider.value(
-      value: state,
-      child: const AuroraApp(),
-    ),
-  );
+    tzdata.initializeTimeZones();
+
+    final state = AppState();
+    try {
+      await state.load();
+    } catch (e) {
+      CrashStore.failures++;
+      CrashStore.last = 'state.load: $e';
+    }
+
+    runApp(
+      ChangeNotifierProvider.value(
+        value: state,
+        child: const AuroraApp(),
+      ),
+    );
+
+    try {
+      await notifications.init();
+    } catch (e) {
+      CrashStore.failures++;
+      CrashStore.last = 'notificações: $e';
+    }
+  }, (error, stack) {
+    CrashStore.failures++;
+    CrashStore.last = '$error';
+    debugPrint('Aurora: erro de runtime: $error');
+  });
 }
 
 class NotificationsService {
@@ -105,6 +137,25 @@ class AuroraApp extends StatelessWidget {
     return MaterialApp(
       title: 'Aurora',
       debugShowCheckedModeBanner: false,
+      builder: (context, widget) {
+        // Em vez de tela preta/vermelha, mostra um diagnóstico de vidro.
+        ErrorWidget.builder = (details) {
+          CrashStore.failures++;
+          CrashStore.last = '${details.exception}\n${details.stack ?? ''}';
+          return Container(
+            color: const Color(0xFF060D0A),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Erro na interface — detalhes na Sessão Ajustes.\n'
+              '> ${details.exception}',
+              style: const TextStyle(
+                  color: Color(0xFF46E0A6), fontFamily: 'monospace'),
+            ),
+          );
+        };
+        return widget ?? const SizedBox.shrink();
+      },
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
 import '../../core/theme.dart';
+import '../../main.dart' show CrashStore;
 import '../../widgets/fields.dart';
 
 /// Sessão 5 — Ajustes:
@@ -217,6 +218,43 @@ class AjustesPage extends StatelessWidget {
             'você puxa para atualizar, música vem do seu dispositivo, e a IA '
             'das ideias processa tudo na hora, sem acessar nuvem.',
             style: TextStyle(color: AColors.textSecondary, fontSize: 12.5, height: 1.5),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Glass(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.health_and_safety,
+                    size: 17,
+                    color: CrashStore.failures > 0 ? AColors.danger : AColors.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    CrashStore.failures > 0
+                        ? '${CrashStore.failures} falhas registradas'
+                        : 'app saudável — nenhum erro registrado',
+                    style: TextStyle(
+                        color: CrashStore.failures > 0
+                            ? AColors.danger
+                            : AColors.accent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                CrashStore.last,
+                style: const TextStyle(
+                    color: AColors.textSecondary, fontSize: 11.5, height: 1.4),
+                maxLines: 12,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ],
