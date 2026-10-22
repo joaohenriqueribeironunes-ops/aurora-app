@@ -129,13 +129,23 @@ class NotificationsService {
     try {
       await android?.requestExactAlarmsPermission();
     } catch (_) {}
+    // Não deixa o canal antigo (v1 do ID) asfixiar o novo — apaga se existir.
+    try {
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.deleteNotificationChannel('aurora_foco');
+    } catch (_) {}
   }
 
   Future<NotificationAppLaunchDetails?> appLaunchDetails() =>
       _plugin.getNotificationAppLaunchDetails();
 
   static const _channel = AndroidNotificationDetails(
-    'aurora_foco',
+    // ID novo: canais Android não atualizam configurações após criados —
+    // quem veio de versão antiga (mesmo ID) mantinha o canal antigo sem
+    // tela cheia/importância máxima. Recriar com ID distinto resolve.
+    'aurora_foco_v2',
     'Alarme — Compromissos',
     channelDescription:
         'Alarmes dos compromissos da sessão Foco — abrem em tela cheia '
