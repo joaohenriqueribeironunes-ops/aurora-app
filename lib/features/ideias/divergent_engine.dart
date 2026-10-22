@@ -143,6 +143,55 @@ class DivergentEngine {
     texts.addAll(articles.map((a) => a.content));
     return _axes(texts).take(8).toList();
   }
+
+  /// Processa UM artigo baixado por URL: extrai eixos e frases-chave e
+  /// gera ramificações específicas daquele material — rodando 100% local.
+  static List<IdeaBranch> articleBranches(Article article) {
+    final texts = <String>[article.title, article.content];
+    final axes = _axes(texts);
+    final seeds = _seedSentences([article.content]);
+    String axis(int i) =>
+        axes.isEmpty ? article.title.toLowerCase() : axes[i % axes.length];
+    String seed(int i) =>
+        seeds.isEmpty ? article.title : seeds[i % seeds.length];
+
+    return [
+      IdeaBranch(
+        type: 'Fio central',
+        icon: Icons.center_focus_weak,
+        text: 'O artigo gira em torno de "${axis(0)}", puxado por "${axis(1)}" '
+            'e "${axis(2)}". Se resumisse numa pergunta continua: '
+            '"como ${axis(0)} muda quando ${axis(1)} entra na equação?"',
+      ),
+      IdeaBranch(
+        type: 'Analogia do material',
+        icon: Icons.bubble_chart,
+        text: 'Imagina "${axis(0)}" como um sistema de água: '
+            '"${axis(1)}" seria o fluxo, "${axis(2)}" a pressão. '
+            'Onde o texto deixa vazar água sem ninguém notar?',
+      ),
+      IdeaBranch(
+        type: 'Contra-ponto do texto',
+        icon: Icons.swap_vert_circle,
+        text: 'O material assume que "${axis(0)}" vem antes de "${axis(1)}". '
+            'E se for o contrário? O trecho "${_trim(seed(0))}" '
+            'sobreviveria a essa inversão?',
+      ),
+      IdeaBranch(
+        type: 'Implicação em cadeia',
+        icon: Icons.account_tree,
+        text: 'Se "${axis(0)}" se confirmar, "${axis(1)}" deixa de ser detalhe '
+            'e vira o novo foco — e "${axis(2)}" precisa ser relido do zero. '
+            'A última da cadeia costuma ser: ${axis(3)}.',
+      ),
+      IdeaBranch(
+        type: 'Detalhe de flecha',
+        icon: Icons.low_priority,
+        text: 'Frase discreta que abre portas: "${_trim(seed(1))}". '
+            'O que ela pressupõe sobre "${axis(0)}" antes de ser dito?',
+      ),
+    ];
+  }
 }
 
 class IdeaBranch {

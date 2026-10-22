@@ -33,8 +33,8 @@ class _FocoPageState extends State<FocoPage> {
         SectionTitle('Agenda — compromissos'),
         const SizedBox(height: 4),
         Text(
-          'No horário, o lembrete abre em tela cheia e toca como alarme '
-          '(toca mesmo com a tela apagada; não é silenciado pela bateria).',
+          'No horário, o compromisso chega como lembrete na barra de '
+          'notificação (pontual e exato, mesmo sem o app aberto).',
           style: TextStyle(color: AColors.textSecondary, fontSize: 12),
         ),
         const SizedBox(height: 10),
@@ -59,10 +59,10 @@ class _FocoPageState extends State<FocoPage> {
         const SizedBox(height: 12),
         Center(
           child: CapsuleButton(
-            label: 'Testar alarme (10 s)',
-            icon: Icons.alarm_on,
+            label: 'Testar lembrete (10 s)',
+            icon: Icons.notifications_active,
             color: AColors.textSecondary,
-            onPressed: () => _testAlarm(context),
+            onPressed: () => _testReminder(context),
           ),
         ),
         const SizedBox(height: 30),
@@ -70,22 +70,21 @@ class _FocoPageState extends State<FocoPage> {
     );
   }
 
-  /// Alarme de teste: agenda de verdade (mesma via do despertador) para
-  /// daqui 10 segundos — trave a tela e confirme que abre em tela cheia.
-  Future<void> _testAlarm(BuildContext context) async {
+  /// Lembrete de teste: agenda de verdade para daqui 10 segundos — a
+  /// notificação deve aparecer na barra do sistema.
+  Future<void> _testReminder(BuildContext context) async {
     final when = DateTime.now().add(const Duration(seconds: 10));
     await notifications.schedule(
-      'Alarme de teste — Aurora',
-      'Se esta tela cheia abriu mesmo com o celular travado, o alarme '
-      'funciona ✓',
+      'Lembrete de teste — Aurora',
+      'Se esta notificação aparecer no horário, os compromissos funcionam ✓',
       when,
     );
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-            'Alarme de teste agendado para daqui 10 segundos — trave a '
-            'tela e aguarde.'),
+            'Lembrete de teste em 10 segundos — aparecendo na barra de '
+            'notificação. Se o Android pedir "notificações", conceda.'),
         duration: Duration(seconds: 4),
       ),
     );
@@ -98,7 +97,6 @@ class _FocoPageState extends State<FocoPage> {
       hint: 'O que precisa lembrar?',
     );
     if (title == null || title.trim().isEmpty) return;
-
     final now = DateTime.now();
     DateTime? chosen = await showDatePicker(
       context: context,
@@ -142,7 +140,7 @@ class _FocoPageState extends State<FocoPage> {
       c.dateTime,
     );
     await notifications.now(
-      'Alarme agendado ✓',
+      'Lembrete agendado ✓',
       '${DateFormat('dd/MM HH:mm').format(c.dateTime)} — ${c.title}',
     );
   }
@@ -160,8 +158,8 @@ class _Glassless extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Sem compromissos à frente. Um compromisso agendado toca '
-              'como alarme na hora, com tela cheia.',
+              'Sem compromissos à frente. No horário agendado, o compromisso '
+              'chega como lembrete na barra de notificação.',
               style: TextStyle(color: AColors.textSecondary, fontSize: 14),
             ),
           ),
@@ -196,7 +194,7 @@ class _CommitmentCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  dimmed ? Icons.event_busy : Icons.alarm,
+                  dimmed ? Icons.event_busy : Icons.notifications_none,
                   color: dimmed ? Colors.grey : AColors.accent,
                   size: 18,
                 ),

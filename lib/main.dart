@@ -129,35 +129,33 @@ class NotificationsService {
     try {
       await android?.requestExactAlarmsPermission();
     } catch (_) {}
-    // Não deixa o canal antigo (v1 do ID) asfixiar o novo — apaga se existir.
-    try {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.deleteNotificationChannel('aurora_foco');
-    } catch (_) {}
+    // Limpa canais de eras passadas (alarme v1 e v2) — só o canal de
+    // lembretes comum existe daqui pra frente.
+    for (final old in const ['aurora_foco', 'aurora_foco_v2']) {
+      try {
+        await android?.deleteNotificationChannel(old);
+      } catch (_) {}
+    }
   }
 
   Future<NotificationAppLaunchDetails?> appLaunchDetails() =>
       _plugin.getNotificationAppLaunchDetails();
 
   static const _channel = AndroidNotificationDetails(
-    // ID novo: canais Android não atualizam configurações após criados —
-    // quem veio de versão antiga (mesmo ID) mantinha o canal antigo sem
-    // tela cheia/importância máxima. Recriar com ID distinto resolve.
-    'aurora_foco_v2',
-    'Alarme — Compromissos',
+    // ID novo de novo: o canal "alarme" (v2) fora de cena — agora só
+    // lembrete comum, pontual e discreto, como o usuário pediu.
+    'aurora_foco_notif',
+    'Lembretes — Compromissos',
     channelDescription:
-        'Alarmes dos compromissos da sessão Foco — abrem em tela cheia '
-        'e tocam com som/vibração máxima, mesmo com a tela apagada',
-    importance: Importance.max,
-    priority: Priority.max,
+        'Lembretes pontuais dos compromissos da sessão Foco, '
+        'na barra de notificação',
+    importance: Importance.high,
+    priority: Priority.high,
     color: Color(0xFF46E0A6),
     showWhen: true,
     autoCancel: true,
     enableVibration: true,
-    category: AndroidNotificationCategory.alarm,
-    fullScreenIntent: true,
+    category: AndroidNotificationCategory.reminder,
     playSound: true,
     channelShowBadge: true,
   );
@@ -172,9 +170,8 @@ class NotificationsService {
     );
   }
 
-  /// Alarme agendado no horário do compromisso — usa AlarmManager
-  /// .setAlarmClock (modo alarmClock): o Android trata como despertador
-  /// de verdade, não é adiado pelo modo Doze nem pela bateria.
+  /// Lembrete agendado no horário do compromisso — notificação pontual
+  /// (alarme exato do sistema, sem tela cheia, sem modo despertador).
   Future<void> schedule(String title, String body, DateTime when) async {
     final plugin = _plugin;
     await plugin.zonedSchedule(
@@ -183,7 +180,7 @@ class NotificationsService {
       body,
       tz.TZDateTime.from(when, tz.local),
       const NotificationDetails(android: _channel, iOS: DarwinNotificationDetails()),
-      androidScheduleMode: AndroidScheduleMode.alarmClock,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }
 
@@ -311,6 +308,7 @@ class _HomeRootState extends State<HomeRoot> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: AnimatedSwitcher(
@@ -332,35 +330,51 @@ class _HomeRootState extends State<HomeRoot> {
                             ),
                           );
                         },
-                        child: Text(
-                          _titles[_tab],
+                        child: Column(
                           key: ValueKey(_tab),
-                          style: const TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -1,
-                          ),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Nome da sessão SEMPRE no canto superior
+                            // esquerdo: legenda em caixa alta + título.
+                            Text(
+                              'SESSÃO ${_titles[_tab].toUpperCase()}',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.6,
+                                color: AColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              _titles[_tab],
+                              style: const TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.8,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    // Versão sempre visível — elimina dúvida de qual build
-                    // está no aparelho (cached Downloads não enganam mais).
+                    // Versão sempre visível — chip fantasma, sem cartão verde.
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: AColors.accentSoft,
+                        color: AColors.glassFill,
                         border: Border.all(
-                            color: AColors.accent.withOpacity(0.35),
-                            width: 0.6),
+                            color: AColors.glassBorder, width: 0.6),
                       ),
                       child: Text(
                         AColors.version,
                         style: TextStyle(
-                          color: AColors.accent,
+                          color: AColors.textSecondary,
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -404,13 +418,9 @@ class _HomeRootState extends State<HomeRoot> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOutCubic,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            color: selected
-                                ? AColors.accentSoft
-                                : Colors.transparent,
-                          ),
-                          margin: const EdgeInsets.all(7),
+                          margin: const EdgeInsets.all(6),
+                          // Sem cartão verde atrás do ícone: a seleção fala
+                          // pela cor, pelo peso e pela micro-escala — sóbrio.
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -418,24 +428,29 @@ class _HomeRootState extends State<HomeRoot> {
                                 scale: selected ? 1.12 : 1,
                                 duration: const Duration(milliseconds: 220),
                                 curve: Curves.easeOutBack,
-                                child: Icon(
-                                  _icons[i],
-                                  size: 21,
-                                  color: selected
-                                      ? AColors.accent
-                                      : AColors.textSecondary,
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 180),
+                                  child: Icon(
+                                    _icons[i],
+                                    key: ValueKey('${i}-$selected'),
+                                    size: 21,
+                                    color: selected
+                                        ? AColors.accent
+                                        : AColors.textSecondary,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 3),
                               Text(
                                 _titles[i],
                                 style: TextStyle(
                                   fontSize: 10,
+                                  letterSpacing: 0.2,
                                   fontWeight: selected
                                       ? FontWeight.w700
                                       : FontWeight.w500,
                                   color: selected
-                                      ? AColors.accent
+                                      ? AColors.textPrimary
                                       : AColors.textSecondary,
                                 ),
                               ),

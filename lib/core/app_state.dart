@@ -72,6 +72,7 @@ class Article {
   final String url;
   final String content; // texto puro
   final DateTime savedAt;
+  int branches; // ramificações geradas pela IA local (processo)
 
   Article({
     required this.id,
@@ -79,6 +80,7 @@ class Article {
     required this.url,
     required this.content,
     required this.savedAt,
+    this.branches = 0,
   });
 
   Map<String, dynamic> toMap() => {
@@ -87,6 +89,7 @@ class Article {
         'url': url,
         'content': content,
         'savedAt': savedAt.toIso8601String(),
+        'branches': branches,
       };
 
   factory Article.fromMap(Map<String, dynamic> m) => Article(
@@ -95,6 +98,7 @@ class Article {
         url: (m['url'] ?? '') as String,
         content: (m['content'] ?? '') as String,
         savedAt: DateTime.parse(m['savedAt'] as String),
+        branches: (m['branches'] ?? 0) as int,
       );
 }
 
@@ -182,6 +186,10 @@ class AppState extends ChangeNotifier {
   // ---------- Artigos ----------
   Future<void> addArticle(Article a) async {
     articles.add(a);
+    await _save(_kArticles, jsonEncode(articles.map((e) => e.toMap()).toList()));
+  }
+
+  Future<void> updateArticle(Article a) async {
     await _save(_kArticles, jsonEncode(articles.map((e) => e.toMap()).toList()));
   }
 

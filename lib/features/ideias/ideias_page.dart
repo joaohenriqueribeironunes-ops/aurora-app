@@ -25,6 +25,9 @@ class _IdeiasPageState extends State<IdeiasPage> {
   bool _downloading = false;
   Article? _reading;
 
+  /// Ramificações da IA do ÚLTIMO artigo baixado (processo automático).
+  List<IdeaBranch>? _justProcessed;
+
   @override
   void dispose() {
     _topicController.dispose();
@@ -35,9 +38,8 @@ class _IdeiasPageState extends State<IdeiasPage> {
 
   Future<void> _download() async {
     final state = context.read<AppState>();
-    final title = await _ask('Salvar página ou artigo', 'Nome para guardar');
-    if (title == null || title.trim().isEmpty) return;
-    final url = await _ask('Salvar página ou artigo', 'URL do site/artigo',
+    // URL primeiro — é pelo URL que o artigo entra.
+    final url = await _ask('Baixar e processar', 'URL do site/artigo',
         keyboard: TextInputType.url);
     if (url == null || url.trim().isEmpty) return;
 
@@ -57,13 +59,46 @@ class _IdeiasPageState extends State<IdeiasPage> {
       }
       return;
     }
-    await state.addArticle(Article(
+
+    final titleEntered = await _ask('Página baixada ✓',
+        'Nome para guardar (deixe vazio p/ automático)');
+    final auto = _firstSent(_firstLine(content), 60);
+    final title = (titleEntered == null || titleEntered.trim().isEmpty)
+        ? auto
+        : titleEntered.trim();
+
+    final article = Article(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      title: _firstSent(title.trim(), 60),
+      title: title,
       url: url.trim(),
       content: content,
       savedAt: DateTime.now(),
-    ));
+    );
+    await state.addArticle(article);
+
+    // ---------- IA divergente processa AGORA, 100% local ----------
+    final processed = DivergentEngine.articleBranches(article);
+    article.branches = processed.length;
+    await state.updateArticle(article);
+    if (!mounted) return;
+    setState(() => _justProcessed = processed);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Processado pela IA local: ${processed.length} ramificações '
+              'prontas ✓'),
+          backgroundColor: const Color(0xFF0E1F18),
+        ),
+      );
+    }
+  }
+
+  static String _firstLine(String s) {
+    for (final line in s.split('\n')) {
+      if (line.trim().length > 12) return line.trim();
+    }
+    return s.split('\n').first.trim();
   }
 
   Future<String?> _ask(String title, String hint,
@@ -144,6 +179,46 @@ class _IdeiasPageState extends State<IdeiasPage> {
     Widget body = ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: [
+        // ---------- processamento automático do último download ----------
+        if (_justProcessed != null) ...[
+          Glass(
+            strong: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome,
+                        color: AColors.accent, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'IA local: artigo processado — '
+                        '${_justProcessed!.length} ramificações',
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close,
+                          size: 16, color: AColors.textSecondary),
+                      onPressed: () => setState(() => _justProcessed = null),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                for (final b in _justProcessed!)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: _Branch(b: b),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
         // ---------- IA divergente ----------
         Glass(
           strong: true,
@@ -273,6 +348,12 @@ class _IdeiasPageState extends State<IdeiasPage> {
                     const TextStyle(fontSize: 16, height: 1.75, letterSpacing: -0.1),
               ),
             ),
+            // Ramificações da IA divergente local sobre este material.
+            const SizedBox(height: 14),
+            SectionTitle('Ramificações da IA local'),
+            const SizedBox(height: 10),
+            ...DivergentEngine.articleBranches(a)
+                .map((b) => _Branch(b: b)),
             if (a.url.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -381,7 +462,10 @@ class _ArticleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${article.content.length ~/ 1000}k caracteres · salvo',
+                    article.branches > 0
+                        ? 'IA local · ${article.branches} ramificações · '
+                            '${article.content.length ~/ 1000}k car.'
+                        : '${article.content.length ~/ 1000}k caracteres · salvo',
                     style: TextStyle(color: AColors.textSecondary, fontSize: 11.5),
                   ),
                 ],

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 /// Paleta — verde grafite + liquidez Apple.
 class AColors {
   /// Versão visível em toda a UI — fonte única de verdade do rótulo.
-  static const version = 'v1.5.1';
+  static const version = 'v1.6.0';
   static const bgTop = Color(0xFF0E1F18); // verde grafite
   static const bgBottom = Color(0xFF060D0A);
 
