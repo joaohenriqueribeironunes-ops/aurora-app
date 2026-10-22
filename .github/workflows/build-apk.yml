@@ -12,10 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # fetch-tags desnecessário no evento de tag — e provoca o fatal
+      # "Cannot fetch both <sha> and refs/tags/..." (checkout@v4).
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-tags: true
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -38,22 +38,34 @@ jobs:
       - name: Ensure manifest permissions
         run: |
           M=android/app/src/main/AndroidManifest.xml
-          grep -q "android.permission.INTERNET" "$M" || sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.POST_NOTIFICATIONS"/><uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/><application#' "$M"
+          grep -q "android.permission.SCHEDULE_EXACT_ALARM" "$M" || sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.POST_NOTIFICATIONS"/><uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/><application#' "$M"
 
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Build release APKs (split por ABI + universal)
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
 
-      - name: Rename APK
-        run: mv build/app/outputs/flutter-apk/app-release.apk aurora-app.apk
-
-      - name: Resolve release tag
-        id: tag
+      - name: Name APKs by tag
+        id: names
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          if [ -z "$TAG" ]; then TAG="$(git describe --tags --abbrev=0)"; fi
+          if [ -z "$TAG" ]; then
+            # sem evento de release: deriva da versão do pubspec (1.5.0+11 → v1.5.0)
+            V="$(grep '^version:' pubspec.yaml | cut -d: -f2 | cut -d+ -f1 | tr -d ' ')"
+            TAG="v${V}"
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "aurora-${TAG}-arm64.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "aurora-${TAG}-universal.apk"
 
-      - name: Upload APK to release
+      - name: Upload APKs to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ steps.tag.outputs.tag }}" aurora-app.apk --clobber --repo ${{ github.repository }}
+        run: |
+          set -e
+          gh release list --repo "$GITHUB_REPOSITORY" | grep -q "${{ steps.names.outputs.tag }}" || \
+            gh release create "${{ steps.names.outputs.tag }}" --target "$GITHUB_SHA" --title "Aurora ${{ steps.names.outputs.tag }}" --generate-notes --repo "$GITHUB_REPOSITORY"
+          gh release upload "${{ steps.names.outputs.tag }}" \
+            "aurora-${{ steps.names.outputs.tag }}-arm64.apk" \
+            "aurora-${{ steps.names.outputs.tag }}-universal.apk" \
+            --clobber --repo "$GITHUB_REPOSITORY"
